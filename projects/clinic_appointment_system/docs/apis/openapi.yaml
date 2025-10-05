@@ -1,0 +1,714 @@
+openapi: 3.0.3
+info:
+  title: Clinic Appointment System API
+  description: |
+    REST API for managing clinic appointments, doctor schedules, and patient bookings.
+    
+    ## Features
+    - JWT-based authentication
+    - Double-booking prevention with database constraints
+    - Idempotent operations for safe retries
+    - Comprehensive audit trail
+    - Automated email notifications
+    
+    ## Authentication
+    Most endpoints require a Bearer token obtained from the login endpoint.
+    Include it in the Authorization header: `Authorization: Bearer <token>`
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@clinic.com
+
+servers:
+  - url: http://localhost:3000
+    description: Development server
+  - url: https://api.clinic.example.com
+    description: Production server
+
+tags:
+  - name: Authentication
+    description: User authentication and session management
+  - name: Doctors
+    description: Doctor information and availability management
+  - name: Appointments
+    description: Appointment booking and management
+
+paths:
+  /auth/token:
+    post:
+      tags:
+        - Authentication
+      summary: Login
+      description: Authenticate user and receive JWT access token
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+    delete:
+      tags:
+        - Authentication
+      summary: Logout
+      description: Invalidate the current access token
+      operationId: logout
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /doctors:
+    get:
+      tags:
+        - Doctors
+      summary: List doctors
+      description: Get paginated list of all doctors
+      operationId: listDoctors
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: specialty
+          in: query
+          schema:
+            type: string
+          description: Filter by specialty
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search by name or specialty
+      responses:
+        '200':
+          description: List of doctors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DoctorListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /doctors/{id}:
+    get:
+      tags:
+        - Doctors
+      summary: Get doctor details
+      description: Retrieve detailed information about a specific doctor
+      operationId: getDoctor
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/DoctorIdParam'
+      responses:
+        '200':
+          description: Doctor details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DoctorDetailResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /doctors/{id}/availability:
+    get:
+      tags:
+        - Doctors
+      summary: Get doctor availability
+      description: Check available time slots for a doctor within a date range
+      operationId: getDoctorAvailability
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/DoctorIdParam'
+        - name: start_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+          description: Start date (ISO 8601)
+        - name: end_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+          description: End date (ISO 8601)
+      responses:
+        '200':
+          description: Doctor availability
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AvailabilityResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /doctors/{id}/schedule:
+    put:
+      tags:
+        - Doctors
+      summary: Update doctor schedule
+      description: Create or update a doctor's availability schedule
+      operationId: updateDoctorSchedule
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/DoctorIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateScheduleRequest'
+      responses:
+        '200':
+          description: Schedule updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateScheduleResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /appointments:
+    get:
+      tags:
+        - Appointments
+      summary: List appointments
+      description: Get paginated list of appointments (filtered by user role)
+      operationId: listAppointments
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/AppointmentStatus'
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: doctorId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: patientId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of appointments
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags:
+        - Appointments
+      summary: Create appointment
+      description: Book a new appointment (idempotent operation)
+      operationId: createAppointment
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKeyParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAppointmentRequest'
+      responses:
+        '201':
+          description: Appointment created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentDetailResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /appointments/{id}:
+    delete:
+      tags:
+        - Appointments
+      summary: Cancel appointment
+      description: Cancel an existing appointment (idempotent operation)
+      operationId: cancelAppointment
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Appointment ID
+        - $ref: '#/components/parameters/IdempotencyKeyParam'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelAppointmentRequest'
+      responses:
+        '200':
+          description: Appointment cancelled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CancelAppointmentResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    PageParam:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+      description: Page number
+    LimitParam:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+      description: Items per page
+    DoctorIdParam:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Doctor's user ID
+    IdempotencyKeyParam:
+      name: Idempotency-Key
+      in: header
+      schema:
+        type: string
+      description: Unique key for idempotent operations
+
+  schemas:
+    UserRole:
+      type: string
+      enum: [PATIENT, DOCTOR, ADMIN]
+    
+    AppointmentStatus:
+      type: string
+      enum: [BOOKED, CANCELLED, COMPLETED]
+    
+    NotificationStatus:
+      type: string
+      enum: [PENDING, SENT, FAILED]
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+
+    LoginResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            accessToken:
+              type: string
+            tokenType:
+              type: string
+              example: Bearer
+            expiresIn:
+              type: integer
+              example: 86400
+            user:
+              $ref: '#/components/schemas/UserInfo'
+
+    UserInfo:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+        name:
+          type: string
+        role:
+          $ref: '#/components/schemas/UserRole'
+
+    DoctorProfile:
+      type: object
+      properties:
+        specialty:
+          type: string
+        shortDescription:
+          type: string
+
+    Doctor:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        email:
+          type: string
+        profile:
+          $ref: '#/components/schemas/DoctorProfile'
+
+    DoctorListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Doctor'
+        pagination:
+          $ref: '#/components/schemas/PaginationInfo'
+
+    DoctorDetailResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/Doctor'
+
+    TimeSlot:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        isBooked:
+          type: boolean
+
+    AvailabilityResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            doctorId:
+              type: string
+              format: uuid
+            doctorName:
+              type: string
+            dateRange:
+              type: object
+              properties:
+                startDate:
+                  type: string
+                  format: date-time
+                endDate:
+                  type: string
+                  format: date-time
+            availableSlots:
+              type: array
+              items:
+                $ref: '#/components/schemas/TimeSlot'
+            summary:
+              type: object
+              properties:
+                totalSlots:
+                  type: integer
+                availableSlots:
+                  type: integer
+                bookedSlots:
+                  type: integer
+
+    UpdateScheduleRequest:
+      type: object
+      required:
+        - timeSlots
+      properties:
+        timeSlots:
+          type: array
+          items:
+            type: object
+            required:
+              - startTime
+              - endTime
+            properties:
+              startTime:
+                type: string
+                format: date-time
+              endTime:
+                type: string
+                format: date-time
+
+    UpdateScheduleResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            created:
+              type: integer
+            updated:
+              type: integer
+            deleted:
+              type: integer
+            timeSlots:
+              type: array
+              items:
+                $ref: '#/components/schemas/TimeSlot'
+
+    Appointment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/AppointmentStatus'
+        slot:
+          $ref: '#/components/schemas/TimeSlot'
+        doctor:
+          $ref: '#/components/schemas/Doctor'
+        patient:
+          $ref: '#/components/schemas/UserInfo'
+        bookedBy:
+          $ref: '#/components/schemas/UserInfo'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    AppointmentListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Appointment'
+        pagination:
+          $ref: '#/components/schemas/PaginationInfo'
+
+    AppointmentDetailResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/Appointment'
+        message:
+          type: string
+
+    CreateAppointmentRequest:
+      type: object
+      required:
+        - slotId
+      properties:
+        slotId:
+          type: string
+          format: uuid
+        patientId:
+          type: string
+          format: uuid
+        notes:
+          type: string
+
+    CancelAppointmentRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+        notifyParties:
+          type: boolean
+          default: true
+
+    CancelAppointmentResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            status:
+              $ref: '#/components/schemas/AppointmentStatus'
+            cancelledAt:
+              type: string
+              format: date-time
+            cancelledBy:
+              $ref: '#/components/schemas/UserInfo'
+        message:
+          type: string
+
+    PaginationInfo:
+      type: object
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        totalPages:
+          type: integer
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: object
+
+  responses:
+    Unauthorized:
+      description: Unauthorized - Invalid or missing authentication token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    
+    Forbidden:
+      description: Forbidden - User doesn't have permission
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    
+    ValidationError:
+      description: Validation error - Invalid request data
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    
+    Conflict:
+      description: Conflict - Resource conflict (e.g., slot already booked)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
