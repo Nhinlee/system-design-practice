@@ -1,0 +1,1 @@
+{"version":3,"file":"get-availability-query.dto.js","sourceRoot":"","sources":["../../../../src/doctors/dto/get-availability-query.dto.ts"],"names":[],"mappings":";;;;;;;;;;;;AAAA,qDAA2D;AAE3D,MAAa,uBAAuB;IAGlC,UAAU,CAAS;IAInB,QAAQ,CAAS;CAClB;AARD,0DAQC;AALC;IAFC,IAAA,4BAAU,GAAE;IACZ,IAAA,8BAAY,GAAE;;2DACI;AAInB;IAFC,IAAA,4BAAU,GAAE;IACZ,IAAA,8BAAY,GAAE;;yDACE"}

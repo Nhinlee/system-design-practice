@@ -1,0 +1,134 @@
+config:
+  target: "http://localhost:3000"
+  phases:
+    # Warm-up phase: gradually increase load
+    - duration: 60
+      arrivalRate: 5
+      name: "Warm up"
+    # Ramp-up phase: increase to medium load
+    - duration: 120
+      arrivalRate: 10
+      rampTo: 50
+      name: "Ramp up to medium load"
+    # Peak load phase: sustained high load
+    - duration: 180
+      arrivalRate: 50
+      name: "Sustained peak load"
+    # Spike test: sudden traffic spike
+    - duration: 60
+      arrivalRate: 100
+      name: "Traffic spike"
+    # Cool down
+    - duration: 60
+      arrivalRate: 20
+      name: "Cool down"
+  
+  # Environment variables for dynamic data
+  variables:
+    doctorId: "doctor-seed-001"
+    patientId: "patient-seed-001"
+    slotIdBase: "slot-doctor-seed-001"
+  
+  # Performance thresholds
+  ensure:
+    maxErrorRate: 1 # Max 1% error rate
+    p95: 2000 # 95th percentile response time < 2s
+    p99: 5000 # 99th percentile response time < 5s
+
+  # Plugins for better reporting
+  plugins:
+    expect: {}
+    metrics-by-endpoint:
+      stripQueryString: true
+      metricsNamespace: "clinic_api"
+
+scenarios:
+  # Scenario 1: Patient browses and books appointment
+  - name: "Patient Booking Flow"
+    weight: 60
+    flow:
+      # List available doctors
+      - get:
+          url: "/doctors?specialty=Cardiology&page=1&limit=10"
+          expect:
+            - statusCode: 200
+            - contentType: json
+            - hasProperty: "data"
+      
+      # Get doctor availability
+      - get:
+          url: "/doctors/{{ doctorId }}/availability?start_date={{ $randomString() }}"
+          expect:
+            - statusCode: 200
+      
+      # Think time (user reviews options)
+      - think: 2
+      
+      # Book appointment
+      - post:
+          url: "/appointments"
+          headers:
+            Content-Type: "application/json"
+            Idempotency-Key: "{{ $uuid }}"
+          json:
+            slotId: "{{ slotIdBase }}-0-9-0" # First available slot
+            patientId: "{{ patientId }}"
+            notes: "Annual checkup - Load test"
+          capture:
+            - json: "$.data.id"
+              as: "appointmentId"
+          expect:
+            - statusCode: [201, 409] # Accept 201 Created or 409 Conflict (already booked)
+      
+      # Get appointment details
+      - get:
+          url: "/appointments/{{ appointmentId }}"
+          expect:
+            - statusCode: [200, 404]
+
+  # Scenario 2: Patient checks their appointments
+  - name: "View My Appointments"
+    weight: 25
+    flow:
+      # List patient's appointments
+      - get:
+          url: "/appointments?status=BOOKED&page=1&limit=20"
+          expect:
+            - statusCode: 200
+            - contentType: json
+      
+      # Think time
+      - think: 1
+
+  # Scenario 3: Doctor checks schedule
+  - name: "Doctor Views Schedule"
+    weight: 10
+    flow:
+      # Get doctor's appointments
+      - get:
+          url: "/appointments?doctorId={{ doctorId }}&status=BOOKED"
+          expect:
+            - statusCode: 200
+      
+      # Get availability
+      - get:
+          url: "/doctors/{{ doctorId }}/availability"
+          expect:
+            - statusCode: 200
+
+  # Scenario 4: Concurrent booking attempts (race condition test)
+  - name: "Concurrent Slot Booking"
+    weight: 5
+    flow:
+      # Multiple users try to book the same slot simultaneously
+      - post:
+          url: "/appointments"
+          headers:
+            Content-Type: "application/json"
+            Idempotency-Key: "{{ $uuid }}"
+          json:
+            slotId: "{{ slotIdBase }}-1-10-0" # Same slot for race condition
+            patientId: "patient-seed-{{ $randomNumber(1, 20) }}"
+            notes: "Concurrent booking test"
+          expect:
+            - statusCode: [201, 409] # One should succeed (201), others should fail (409)
