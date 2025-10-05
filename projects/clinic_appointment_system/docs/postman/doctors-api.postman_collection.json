@@ -1,0 +1,440 @@
+{
+  "info": {
+    "name": "Clinic Appointment System - Doctors API",
+    "description": "Collection of Doctor module endpoints for the Clinic Appointment System.\n\n## Features\n- List all doctors with pagination and filtering\n- Get doctor details\n- Check doctor availability\n- Update doctor schedule\n\n## Base URL\nLocal: `http://localhost:3000`\n\n## Authentication\nMost endpoints will require JWT authentication (to be implemented).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "clinic-appointment-system"
+  },
+  "item": [
+    {
+      "name": "Doctors",
+      "item": [
+        {
+          "name": "List All Doctors",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/doctors?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["doctors"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (default: 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Items per page (default: 20, max: 100)"
+                },
+                {
+                  "key": "specialty",
+                  "value": "Cardiology",
+                  "description": "Filter by specialty",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "Johnson",
+                  "description": "Search by name or specialty",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Retrieve a paginated list of all doctors.\n\n**Query Parameters:**\n- `page` (optional): Page number (default: 1)\n- `limit` (optional): Items per page (default: 20, max: 100)\n- `specialty` (optional): Filter by specialty\n- `search` (optional): Search by name or specialty\n\n**Response:**\nReturns a list of doctors with pagination information."
+          },
+          "response": [
+            {
+              "name": "Success - Empty List",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/doctors",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["doctors"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": [],\n  \"pagination\": {\n    \"page\": 1,\n    \"limit\": 20,\n    \"total\": 0,\n    \"totalPages\": 0\n  }\n}"
+            },
+            {
+              "name": "Success - With Doctors",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/doctors",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["doctors"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": [\n    {\n      \"id\": \"doctor-uuid-1\",\n      \"name\": \"Dr. Sarah Johnson\",\n      \"email\": \"dr.johnson@clinic.com\",\n      \"address\": \"123 Medical Plaza, Suite 400\",\n      \"profile\": {\n        \"specialty\": \"Cardiology\",\n        \"shortDescription\": \"Experienced cardiologist with 15 years of practice\"\n      }\n    }\n  ],\n  \"pagination\": {\n    \"page\": 1,\n    \"limit\": 20,\n    \"total\": 1,\n    \"totalPages\": 1\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Doctor by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/doctors/{{doctorId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["doctors", "{{doctorId}}"]
+            },
+            "description": "Retrieve detailed information about a specific doctor.\n\n**Path Parameters:**\n- `id`: Doctor's user ID (UUID)\n\n**Response:**\nReturns complete doctor information including profile details."
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/doctors/doctor-uuid-1",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["doctors", "doctor-uuid-1"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": \"doctor-uuid-1\",\n    \"name\": \"Dr. Sarah Johnson\",\n    \"email\": \"dr.johnson@clinic.com\",\n    \"role\": \"DOCTOR\",\n    \"address\": \"123 Medical Plaza, Suite 400\",\n    \"profile\": {\n      \"id\": \"profile-uuid-1\",\n      \"specialty\": \"Cardiology\",\n      \"shortDescription\": \"Experienced cardiologist with 15 years of practice\",\n      \"createdAt\": \"2024-01-15T10:00:00Z\"\n    },\n    \"createdAt\": \"2024-01-15T10:00:00Z\",\n    \"updatedAt\": \"2024-09-20T14:30:00Z\"\n  }\n}"
+            },
+            {
+              "name": "Not Found",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/doctors/invalid-id",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["doctors", "invalid-id"]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"NOT_FOUND\",\n    \"message\": \"Doctor not found\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Doctor Availability",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/doctors/{{doctorId}}/availability?start_date=2025-10-10T00:00:00Z&end_date=2025-10-15T23:59:59Z",
+              "host": ["{{baseUrl}}"],
+              "path": ["doctors", "{{doctorId}}", "availability"],
+              "query": [
+                {
+                  "key": "start_date",
+                  "value": "2025-10-10T00:00:00Z",
+                  "description": "Start date (ISO 8601 format)"
+                },
+                {
+                  "key": "end_date",
+                  "value": "2025-10-15T23:59:59Z",
+                  "description": "End date (ISO 8601 format)"
+                }
+              ]
+            },
+            "description": "Check a doctor's available time slots within a date range.\n\n**Path Parameters:**\n- `id`: Doctor's user ID (UUID)\n\n**Query Parameters:**\n- `start_date` (required): Start date in ISO 8601 format\n- `end_date` (required): End date in ISO 8601 format\n\n**Business Rules:**\n- Date range cannot exceed 30 days\n- Returns only non-deleted time slots\n- Shows which slots are booked vs available\n\n**Response:**\nReturns available time slots with booking status and summary statistics."
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/doctors/doctor-uuid-1/availability?start_date=2025-10-10T00:00:00Z&end_date=2025-10-15T23:59:59Z",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["doctors", "doctor-uuid-1", "availability"],
+                  "query": [
+                    {
+                      "key": "start_date",
+                      "value": "2025-10-10T00:00:00Z"
+                    },
+                    {
+                      "key": "end_date",
+                      "value": "2025-10-15T23:59:59Z"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"doctorId\": \"doctor-uuid-1\",\n    \"doctorName\": \"Dr. Sarah Johnson\",\n    \"dateRange\": {\n      \"startDate\": \"2025-10-10T00:00:00Z\",\n      \"endDate\": \"2025-10-15T23:59:59Z\"\n    },\n    \"availableSlots\": [\n      {\n        \"id\": \"slot-uuid-1\",\n        \"startTime\": \"2025-10-10T09:00:00Z\",\n        \"endTime\": \"2025-10-10T09:30:00Z\",\n        \"isBooked\": false\n      },\n      {\n        \"id\": \"slot-uuid-2\",\n        \"startTime\": \"2025-10-10T09:30:00Z\",\n        \"endTime\": \"2025-10-10T10:00:00Z\",\n        \"isBooked\": true\n      }\n    ],\n    \"summary\": {\n      \"totalSlots\": 48,\n      \"availableSlots\": 35,\n      \"bookedSlots\": 13\n    }\n  }\n}"
+            },
+            {
+              "name": "Validation Error - Date Range Too Large",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/doctors/doctor-uuid-1/availability?start_date=2025-10-10T00:00:00Z&end_date=2025-12-15T23:59:59Z",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["doctors", "doctor-uuid-1", "availability"],
+                  "query": [
+                    {
+                      "key": "start_date",
+                      "value": "2025-10-10T00:00:00Z"
+                    },
+                    {
+                      "key": "end_date",
+                      "value": "2025-12-15T23:59:59Z"
+                    }
+                  ]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"VALIDATION_ERROR\",\n    \"message\": \"Date range cannot exceed 30 days\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Doctor Schedule",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"timeSlots\": [\n    {\n      \"startTime\": \"2025-10-15T09:00:00Z\",\n      \"endTime\": \"2025-10-15T09:30:00Z\"\n    },\n    {\n      \"startTime\": \"2025-10-15T09:30:00Z\",\n      \"endTime\": \"2025-10-15T10:00:00Z\"\n    },\n    {\n      \"startTime\": \"2025-10-15T10:00:00Z\",\n      \"endTime\": \"2025-10-15T10:30:00Z\"\n    },\n    {\n      \"startTime\": \"2025-10-15T10:30:00Z\",\n      \"endTime\": \"2025-10-15T11:00:00Z\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/doctors/{{doctorId}}/schedule",
+              "host": ["{{baseUrl}}"],
+              "path": ["doctors", "{{doctorId}}", "schedule"]
+            },
+            "description": "Create or update a doctor's availability schedule.\n\n**Path Parameters:**\n- `id`: Doctor's user ID (UUID)\n\n**Request Body:**\n```json\n{\n  \"timeSlots\": [\n    {\n      \"startTime\": \"ISO 8601 datetime\",\n      \"endTime\": \"ISO 8601 datetime\"\n    }\n  ]\n}\n```\n\n**Business Rules:**\n- Only the doctor can update their own schedule\n- Each slot must be at least 15 minutes long\n- Slots cannot overlap\n- Cannot delete slots with active (BOOKED) appointments\n- Old slots without appointments will be soft-deleted\n\n**Authentication:**\nRequires authentication (to be implemented).\n\n**Response:**\nReturns created/updated/deleted counts and new time slots."
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"timeSlots\": [\n    {\n      \"startTime\": \"2025-10-15T09:00:00Z\",\n      \"endTime\": \"2025-10-15T09:30:00Z\"\n    },\n    {\n      \"startTime\": \"2025-10-15T09:30:00Z\",\n      \"endTime\": \"2025-10-15T10:00:00Z\"\n    }\n  ]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/doctors/doctor-uuid-1/schedule",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["doctors", "doctor-uuid-1", "schedule"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"created\": 2,\n    \"kept\": 0,\n    \"deleted\": 0,\n    \"timeSlots\": [\n      {\n        \"id\": \"new-slot-uuid-1\",\n        \"startTime\": \"2025-10-15T09:00:00.000Z\",\n        \"endTime\": \"2025-10-15T09:30:00.000Z\",\n        \"isBooked\": false\n      },\n      {\n        \"id\": \"new-slot-uuid-2\",\n        \"startTime\": \"2025-10-15T09:30:00.000Z\",\n        \"endTime\": \"2025-10-15T10:00:00.000Z\",\n        \"isBooked\": false\n      }\n    ]\n  },\n  \"message\": \"Schedule updated successfully\"\n}"
+            },
+            {
+              "name": "Validation Error - Overlapping Slots",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"timeSlots\": [\n    {\n      \"startTime\": \"2025-10-15T09:00:00Z\",\n      \"endTime\": \"2025-10-15T10:00:00Z\"\n    },\n    {\n      \"startTime\": \"2025-10-15T09:30:00Z\",\n      \"endTime\": \"2025-10-15T10:30:00Z\"\n    }\n  ]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/doctors/doctor-uuid-1/schedule",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["doctors", "doctor-uuid-1", "schedule"]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"VALIDATION_ERROR\",\n    \"message\": \"Time slots cannot overlap: 2025-10-15T09:00:00Z - 2025-10-15T10:00:00Z overlaps with 2025-10-15T09:30:00Z - 2025-10-15T10:30:00Z\"\n  }\n}"
+            },
+            {
+              "name": "Conflict - Slot Has Active Appointment",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"timeSlots\": []\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/doctors/doctor-uuid-1/schedule",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["doctors", "doctor-uuid-1", "schedule"]
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"CONFLICT\",\n    \"message\": \"Cannot delete slot with active appointment. Slot: 2025-10-15T09:00:00.000Z\"\n  }\n}"
+            },
+            {
+              "name": "Forbidden - Not Authorized",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"timeSlots\": [\n    {\n      \"startTime\": \"2025-10-15T09:00:00Z\",\n      \"endTime\": \"2025-10-15T09:30:00Z\"\n    }\n  ]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/doctors/other-doctor-id/schedule",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["doctors", "other-doctor-id", "schedule"]
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"FORBIDDEN\",\n    \"message\": \"You can only update your own schedule\"\n  }\n}"
+            },
+            {
+              "name": "Idempotent - No Duplicates Created",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"timeSlots\": [\n    {\n      \"startTime\": \"2025-10-15T09:00:00Z\",\n      \"endTime\": \"2025-10-15T09:30:00Z\"\n    },\n    {\n      \"startTime\": \"2025-10-15T09:30:00Z\",\n      \"endTime\": \"2025-10-15T10:00:00Z\"\n    }\n  ]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/doctors/doctor-uuid-1/schedule",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["doctors", "doctor-uuid-1", "schedule"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"created\": 0,\n    \"kept\": 2,\n    \"deleted\": 0,\n    \"timeSlots\": [\n      {\n        \"id\": \"same-uuid-1\",\n        \"startTime\": \"2025-10-15T09:00:00.000Z\",\n        \"endTime\": \"2025-10-15T09:30:00.000Z\",\n        \"isBooked\": false\n      },\n      {\n        \"id\": \"same-uuid-2\",\n        \"startTime\": \"2025-10-15T09:30:00.000Z\",\n        \"endTime\": \"2025-10-15T10:00:00.000Z\",\n        \"isBooked\": false\n      }\n    ]\n  },\n  \"message\": \"Schedule updated successfully\"\n}"
+            }
+          ]
+        }
+      ],
+      "description": "Endpoints for managing doctor information, availability, and schedules."
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "doctorId",
+      "value": "doctor-uuid-1",
+      "type": "string"
+    }
+  ]
+}
