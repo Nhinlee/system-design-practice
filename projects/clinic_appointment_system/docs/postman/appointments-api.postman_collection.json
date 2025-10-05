@@ -1,0 +1,624 @@
+{
+  "info": {
+    "name": "Clinic Appointment System - Appointments API",
+    "description": "Collection of Appointment module endpoints for the Clinic Appointment System.\n\n## Features\n- Book new appointments with idempotency support\n- List appointments with role-based filtering\n- View appointment details\n- Cancel appointments\n- Double-booking prevention\n\n## Base URL\nLocal: `http://localhost:3000`\n\n## Authentication\nAll endpoints will require JWT authentication (to be implemented).\n\n## Idempotency\nThe create appointment endpoint supports idempotency through the `Idempotency-Key` header to prevent duplicate bookings on network retries.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "clinic-appointment-system"
+  },
+  "item": [
+    {
+      "name": "Appointments",
+      "item": [
+        {
+          "name": "Create Appointment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{$guid}}",
+                "description": "Optional unique key for idempotent requests. Use the same key to get the same appointment on retry.",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"slotId\": \"{{slotId}}\",\n  \"patientId\": \"{{patientId}}\",\n  \"notes\": \"Regular checkup - experiencing chest pain\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/appointments",
+              "host": ["{{baseUrl}}"],
+              "path": ["appointments"]
+            },
+            "description": "Book a new appointment by selecting an available time slot.\n\n**Business Rules:**\n- Time slot must exist and not be deleted\n- Time slot must not be already booked\n- Cannot book appointments in the past\n- Patient must exist and have PATIENT role\n\n**Idempotency:**\nEnable the `Idempotency-Key` header to make this request idempotent. Calling with the same key will return the existing appointment instead of creating a duplicate.\n\n**Authorization:**\nRequires authentication (to be implemented).\n\n**Request Body:**\n- `slotId` (required): UUID of the time slot to book\n- `patientId` (required): UUID of the patient\n- `notes` (optional): Appointment notes/reason"
+          },
+          "response": [
+            {
+              "name": "Success - Appointment Created",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"slotId\": \"880e8400-e29b-41d4-a716-446655440000\",\n  \"patientId\": \"770e8400-e29b-41d4-a716-446655440001\",\n  \"notes\": \"Regular checkup - experiencing chest pain\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/appointments",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["appointments"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": \"dd0e8400-e29b-41d4-a716-446655440000\",\n    \"status\": \"BOOKED\",\n    \"notes\": \"Regular checkup - experiencing chest pain\",\n    \"slot\": {\n      \"id\": \"880e8400-e29b-41d4-a716-446655440000\",\n      \"startTime\": \"2025-10-15T10:00:00.000Z\",\n      \"endTime\": \"2025-10-15T10:30:00.000Z\"\n    },\n    \"doctor\": {\n      \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n      \"name\": \"Dr. Sarah Johnson\",\n      \"specialty\": \"Cardiology\"\n    },\n    \"patient\": {\n      \"id\": \"770e8400-e29b-41d4-a716-446655440001\",\n      \"name\": \"John Doe\"\n    },\n    \"bookedBy\": {\n      \"id\": \"770e8400-e29b-41d4-a716-446655440001\",\n      \"name\": \"John Doe\"\n    },\n    \"createdAt\": \"2025-10-05T14:30:00.000Z\",\n    \"updatedAt\": \"2025-10-05T14:30:00.000Z\"\n  },\n  \"message\": \"Appointment booked successfully\"\n}"
+            },
+            {
+              "name": "Success - Idempotent Response",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Idempotency-Key",
+                    "value": "unique-request-id-123"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"slotId\": \"880e8400-e29b-41d4-a716-446655440000\",\n  \"patientId\": \"770e8400-e29b-41d4-a716-446655440001\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/appointments",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["appointments"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": \"dd0e8400-e29b-41d4-a716-446655440000\",\n    \"status\": \"BOOKED\",\n    \"notes\": null,\n    \"slot\": {\n      \"id\": \"880e8400-e29b-41d4-a716-446655440000\",\n      \"startTime\": \"2025-10-15T10:00:00.000Z\",\n      \"endTime\": \"2025-10-15T10:30:00.000Z\"\n    },\n    \"doctor\": {\n      \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n      \"name\": \"Dr. Sarah Johnson\",\n      \"specialty\": \"Cardiology\"\n    },\n    \"patient\": {\n      \"id\": \"770e8400-e29b-41d4-a716-446655440001\",\n      \"name\": \"John Doe\"\n    },\n    \"bookedBy\": {\n      \"id\": \"770e8400-e29b-41d4-a716-446655440001\",\n      \"name\": \"John Doe\"\n    },\n    \"createdAt\": \"2025-10-05T14:30:00.000Z\",\n    \"updatedAt\": \"2025-10-05T14:30:00.000Z\"\n  },\n  \"message\": \"Appointment already exists (idempotent)\"\n}"
+            },
+            {
+              "name": "Error - Time Slot Not Found",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"slotId\": \"invalid-slot-id\",\n  \"patientId\": \"770e8400-e29b-41d4-a716-446655440001\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/appointments",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["appointments"]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"statusCode\": 404,\n  \"message\": \"Time slot not found\",\n  \"error\": \"Not Found\"\n}"
+            },
+            {
+              "name": "Error - Slot Already Booked",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"slotId\": \"880e8400-e29b-41d4-a716-446655440000\",\n  \"patientId\": \"770e8400-e29b-41d4-a716-446655440001\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/appointments",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["appointments"]
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"statusCode\": 409,\n  \"message\": \"This time slot is already booked. Please select another time.\",\n  \"error\": \"Conflict\"\n}"
+            },
+            {
+              "name": "Error - Past Appointment",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"slotId\": \"past-slot-id\",\n  \"patientId\": \"770e8400-e29b-41d4-a716-446655440001\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/appointments",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["appointments"]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"statusCode\": 400,\n  \"message\": \"Cannot book appointments in the past\",\n  \"error\": \"Bad Request\"\n}"
+            },
+            {
+              "name": "Error - Patient Not Found",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"slotId\": \"880e8400-e29b-41d4-a716-446655440000\",\n  \"patientId\": \"invalid-patient-id\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/appointments",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["appointments"]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"statusCode\": 404,\n  \"message\": \"Patient not found\",\n  \"error\": \"Not Found\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "List Appointments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/appointments?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["appointments"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (default: 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Items per page (default: 20, max: 100)"
+                },
+                {
+                  "key": "status",
+                  "value": "BOOKED",
+                  "description": "Filter by status: BOOKED, CANCELLED, COMPLETED",
+                  "disabled": true
+                },
+                {
+                  "key": "startDate",
+                  "value": "2025-10-10T00:00:00Z",
+                  "description": "Filter appointments from this date (ISO 8601)",
+                  "disabled": true
+                },
+                {
+                  "key": "endDate",
+                  "value": "2025-10-20T23:59:59Z",
+                  "description": "Filter appointments until this date (ISO 8601)",
+                  "disabled": true
+                },
+                {
+                  "key": "doctorId",
+                  "value": "{{doctorId}}",
+                  "description": "Filter by doctor (patients only)",
+                  "disabled": true
+                },
+                {
+                  "key": "patientId",
+                  "value": "{{patientId}}",
+                  "description": "Filter by patient (doctors/admins only)",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Retrieve a list of appointments with role-based filtering.\n\n**Role-Based Filtering:**\n- **Patients**: See only their own appointments\n- **Doctors**: See appointments scheduled with them\n- **Admins**: See all appointments\n\n**Query Parameters:**\n- `page` (optional): Page number\n- `limit` (optional): Items per page (max: 100)\n- `status` (optional): Filter by status\n- `startDate` (optional): Filter from date\n- `endDate` (optional): Filter until date\n- `doctorId` (optional): Filter by doctor (patients)\n- `patientId` (optional): Filter by patient (doctors/admins)\n\n**Authorization:**\nRequires authentication (to be implemented)."
+          },
+          "response": [
+            {
+              "name": "Success - With Appointments",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/appointments",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["appointments"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": [\n    {\n      \"id\": \"dd0e8400-e29b-41d4-a716-446655440000\",\n      \"status\": \"BOOKED\",\n      \"notes\": \"Regular checkup\",\n      \"slot\": {\n        \"id\": \"880e8400-e29b-41d4-a716-446655440000\",\n        \"startTime\": \"2025-10-15T10:00:00.000Z\",\n        \"endTime\": \"2025-10-15T10:30:00.000Z\"\n      },\n      \"doctor\": {\n        \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n        \"name\": \"Dr. Sarah Johnson\",\n        \"specialty\": \"Cardiology\"\n      },\n      \"patient\": {\n        \"id\": \"770e8400-e29b-41d4-a716-446655440001\",\n        \"name\": \"John Doe\"\n      },\n      \"bookedBy\": {\n        \"id\": \"770e8400-e29b-41d4-a716-446655440001\",\n        \"name\": \"John Doe\"\n      },\n      \"createdAt\": \"2025-10-05T14:30:00.000Z\",\n      \"updatedAt\": \"2025-10-05T14:30:00.000Z\"\n    }\n  ],\n  \"pagination\": {\n    \"page\": 1,\n    \"limit\": 20,\n    \"total\": 1,\n    \"totalPages\": 1\n  }\n}"
+            },
+            {
+              "name": "Success - Empty List",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/appointments",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["appointments"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": [],\n  \"pagination\": {\n    \"page\": 1,\n    \"limit\": 20,\n    \"total\": 0,\n    \"totalPages\": 0\n  }\n}"
+            },
+            {
+              "name": "Success - Filtered by Status",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/appointments?status=BOOKED",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["appointments"],
+                  "query": [
+                    {
+                      "key": "status",
+                      "value": "BOOKED"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": [\n    {\n      \"id\": \"dd0e8400-e29b-41d4-a716-446655440000\",\n      \"status\": \"BOOKED\",\n      \"notes\": \"Regular checkup\",\n      \"slot\": {\n        \"id\": \"880e8400-e29b-41d4-a716-446655440000\",\n        \"startTime\": \"2025-10-15T10:00:00.000Z\",\n        \"endTime\": \"2025-10-15T10:30:00.000Z\"\n      },\n      \"doctor\": {\n        \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n        \"name\": \"Dr. Sarah Johnson\",\n        \"specialty\": \"Cardiology\"\n      },\n      \"patient\": {\n        \"id\": \"770e8400-e29b-41d4-a716-446655440001\",\n        \"name\": \"John Doe\"\n      },\n      \"bookedBy\": {\n        \"id\": \"770e8400-e29b-41d4-a716-446655440001\",\n        \"name\": \"John Doe\"\n      },\n      \"createdAt\": \"2025-10-05T14:30:00.000Z\",\n      \"updatedAt\": \"2025-10-05T14:30:00.000Z\"\n    }\n  ],\n  \"pagination\": {\n    \"page\": 1,\n    \"limit\": 20,\n    \"total\": 1,\n    \"totalPages\": 1\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Appointment by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/appointments/{{appointmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["appointments", "{{appointmentId}}"]
+            },
+            "description": "Retrieve detailed information about a specific appointment.\n\n**Path Parameters:**\n- `id`: Appointment ID (UUID)\n\n**Authorization:**\n- Patient can view their own appointments\n- Doctor can view appointments with them\n- Admin can view all appointments\n\n**Response:**\nReturns complete appointment information including slot, doctor, and patient details."
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/appointments/dd0e8400-e29b-41d4-a716-446655440000",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["appointments", "dd0e8400-e29b-41d4-a716-446655440000"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": \"dd0e8400-e29b-41d4-a716-446655440000\",\n    \"status\": \"BOOKED\",\n    \"notes\": \"Regular checkup - experiencing chest pain\",\n    \"slot\": {\n      \"id\": \"880e8400-e29b-41d4-a716-446655440000\",\n      \"startTime\": \"2025-10-15T10:00:00.000Z\",\n      \"endTime\": \"2025-10-15T10:30:00.000Z\"\n    },\n    \"doctor\": {\n      \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n      \"name\": \"Dr. Sarah Johnson\",\n      \"specialty\": \"Cardiology\"\n    },\n    \"patient\": {\n      \"id\": \"770e8400-e29b-41d4-a716-446655440001\",\n      \"name\": \"John Doe\"\n    },\n    \"bookedBy\": {\n      \"id\": \"770e8400-e29b-41d4-a716-446655440001\",\n      \"name\": \"John Doe\"\n    },\n    \"createdAt\": \"2025-10-05T14:30:00.000Z\",\n    \"updatedAt\": \"2025-10-05T14:30:00.000Z\"\n  }\n}"
+            },
+            {
+              "name": "Error - Not Found",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/appointments/invalid-id",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["appointments", "invalid-id"]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"statusCode\": 404,\n  \"message\": \"Appointment not found\",\n  \"error\": \"Not Found\"\n}"
+            },
+            {
+              "name": "Error - Forbidden",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/appointments/dd0e8400-e29b-41d4-a716-446655440000",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["appointments", "dd0e8400-e29b-41d4-a716-446655440000"]
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"statusCode\": 403,\n  \"message\": \"You do not have permission to view this appointment\",\n  \"error\": \"Forbidden\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Cancel Appointment",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/appointments/{{appointmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["appointments", "{{appointmentId}}"]
+            },
+            "description": "Cancel an appointment by changing its status to CANCELLED.\n\n**Path Parameters:**\n- `id`: Appointment ID (UUID)\n\n**Business Rules:**\n- Cannot cancel already cancelled appointments\n- Cannot cancel completed appointments\n- Cannot cancel appointments in the past\n\n**Authorization:**\n- Patient can cancel their own appointments\n- Doctor can cancel appointments with them\n- Admin can cancel any appointment\n\n**Response:**\nReturns success message with updated status."
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/appointments/dd0e8400-e29b-41d4-a716-446655440000",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["appointments", "dd0e8400-e29b-41d4-a716-446655440000"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Appointment cancelled successfully\",\n  \"data\": {\n    \"id\": \"dd0e8400-e29b-41d4-a716-446655440000\",\n    \"status\": \"CANCELLED\",\n    \"cancelledAt\": \"2025-10-05T15:00:00.000Z\"\n  }\n}"
+            },
+            {
+              "name": "Error - Already Cancelled",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/appointments/dd0e8400-e29b-41d4-a716-446655440000",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["appointments", "dd0e8400-e29b-41d4-a716-446655440000"]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"statusCode\": 400,\n  \"message\": \"Appointment is already cancelled\",\n  \"error\": \"Bad Request\"\n}"
+            },
+            {
+              "name": "Error - Completed Appointment",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/appointments/dd0e8400-e29b-41d4-a716-446655440000",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["appointments", "dd0e8400-e29b-41d4-a716-446655440000"]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"statusCode\": 400,\n  \"message\": \"Cannot cancel a completed appointment\",\n  \"error\": \"Bad Request\"\n}"
+            },
+            {
+              "name": "Error - Past Appointment",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/appointments/dd0e8400-e29b-41d4-a716-446655440000",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["appointments", "dd0e8400-e29b-41d4-a716-446655440000"]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"statusCode\": 400,\n  \"message\": \"Cannot cancel appointments in the past\",\n  \"error\": \"Bad Request\"\n}"
+            },
+            {
+              "name": "Error - Not Found",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/appointments/invalid-id",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["appointments", "invalid-id"]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"statusCode\": 404,\n  \"message\": \"Appointment not found\",\n  \"error\": \"Not Found\"\n}"
+            },
+            {
+              "name": "Error - Forbidden",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/appointments/dd0e8400-e29b-41d4-a716-446655440000",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["appointments", "dd0e8400-e29b-41d4-a716-446655440000"]
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"statusCode\": 403,\n  \"message\": \"You do not have permission to cancel this appointment\",\n  \"error\": \"Forbidden\"\n}"
+            }
+          ]
+        }
+      ],
+      "description": "Endpoints for managing appointments - booking, viewing, and canceling appointments."
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "slotId",
+      "value": "d8edc331-275a-42bd-9a6f-f2e395426a1c",
+      "type": "string",
+      "description": "Time slot ID from doctor's availability"
+    },
+    {
+      "key": "patientId",
+      "value": "patient-uuid-1",
+      "type": "string",
+      "description": "Patient user ID"
+    },
+    {
+      "key": "doctorId",
+      "value": "doctor-uuid-1",
+      "type": "string",
+      "description": "Doctor user ID"
+    },
+    {
+      "key": "appointmentId",
+      "value": "appointment-uuid-1",
+      "type": "string",
+      "description": "Appointment ID"
+    }
+  ]
+}

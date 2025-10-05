@@ -23,13 +23,32 @@ This directory contains Postman collections for testing the Clinic Appointment S
 
 ---
 
+### 2. Appointments API Collection
+**File**: `appointments-api.postman_collection.json`
+
+#### Endpoints Included:
+- `POST /appointments` - Book new appointment with idempotency support
+- `GET /appointments` - List appointments with role-based filtering
+- `GET /appointments/:id` - Get appointment details
+- `DELETE /appointments/:id` - Cancel appointment
+
+#### Features:
+✅ Idempotency support with `Idempotency-Key` header  
+✅ Double-booking prevention examples  
+✅ Role-based filtering scenarios  
+✅ Authorization error examples  
+✅ Business rule validation examples  
+✅ Comprehensive error responses  
+
+---
+
 ## How to Import
 
 ### Method 1: Using Postman Desktop App
 1. Open Postman
 2. Click "Import" button (top left)
 3. Click "Choose Files"
-4. Navigate to this directory and select `doctors-api.postman_collection.json`
+4. Navigate to this directory and select the collection file(s)
 5. Click "Import"
 
 ### Method 2: Drag and Drop
@@ -49,12 +68,22 @@ This directory contains Postman collections for testing the Clinic Appointment S
 
 After importing, configure the environment variables:
 
-### Variables
+### Doctors API Variables
 
 | Variable | Default Value | Description |
 |----------|---------------|-------------|
 | `baseUrl` | `http://localhost:3000` | API server base URL |
 | `doctorId` | `doctor-uuid-1` | Sample doctor ID for testing |
+
+### Appointments API Variables
+
+| Variable | Default Value | Description |
+|----------|---------------|-------------|
+| `baseUrl` | `http://localhost:3000` | API server base URL |
+| `slotId` | `d8edc331-275a-42bd-9a6f-f2e395426a1c` | Time slot ID |
+| `patientId` | `patient-uuid-1` | Patient user ID |
+| `doctorId` | `doctor-uuid-1` | Doctor user ID |
+| `appointmentId` | `appointment-uuid-1` | Appointment ID |
 
 ### How to Update Variables
 
@@ -96,28 +125,71 @@ INSERT INTO doctor_profiles (id, user_id, specialty, short_description, created_
 VALUES ('profile-uuid-1', 'doctor-uuid-1', 'Cardiology', 
         'Experienced cardiologist', now(), now());
 
+# Insert test patient
+INSERT INTO users (id, email, name, role, created_at, updated_at)
+VALUES ('patient-uuid-1', 'john.doe@example.com', 'John Doe', 'PATIENT', now(), now());
+
+INSERT INTO patient_profiles (id, user_id, date_of_birth, phone_number, created_at, updated_at)
+VALUES ('patient-profile-1', 'patient-uuid-1', '1990-05-15', '+1234567890', now(), now());
+
 # Exit
 \q
 ```
 
 ### 3. Test in Postman
-1. Open the "Doctors" folder
-2. Click on "List All Doctors"
+1. Open the "Doctors" or "Appointments" folder
+2. Click on any request
 3. Click "Send"
-4. You should see Dr. Johnson in the response
+4. View the response
 
 ---
 
 ## Example Requests
 
-### List Doctors with Filtering
+### Doctors API
+
+#### List Doctors with Filtering
 ```
 GET http://localhost:3000/doctors?specialty=Cardiology&page=1&limit=10
 ```
 
-### Get Doctor Availability
+#### Get Doctor Availability
 ```
 GET http://localhost:3000/doctors/doctor-uuid-1/availability?start_date=2025-10-15T00:00:00Z&end_date=2025-10-15T23:59:59Z
+```
+
+### Appointments API
+
+#### Create Appointment (with Idempotency)
+```bash
+curl -X POST http://localhost:3000/appointments \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: 550e8400-e29b-41d4-a716-446655440000" \
+  -d '{
+    "slotId": "slot-uuid-1",
+    "patientId": "patient-uuid-1",
+    "notes": "Routine checkup"
+  }'
+```
+
+#### List My Appointments (Patient View)
+```
+GET http://localhost:3000/appointments?status=BOOKED&start_date=2025-10-15T00:00:00Z
+```
+
+#### List Doctor's Appointments (Doctor View)
+```
+GET http://localhost:3000/appointments?doctorId=doctor-uuid-1&status=BOOKED
+```
+
+#### Get Appointment Details
+```
+GET http://localhost:3000/appointments/appointment-uuid-1
+```
+
+#### Cancel Appointment
+```bash
+curl -X DELETE http://localhost:3000/appointments/appointment-uuid-1
 ```
 
 ### Update Doctor Schedule
