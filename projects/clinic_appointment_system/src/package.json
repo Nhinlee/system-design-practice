@@ -28,7 +28,11 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
-    "docs:swagger": "cd .. && ./start-swagger.sh"
+    "docs:swagger": "cd .. && ./start-swagger.sh",
+    "cli": "node cli.js",
+    "health": "node cli.js health",
+    "smoke": "node cli.js test:smoke",
+    "load": "node cli.js test:load"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

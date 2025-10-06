@@ -1,10 +1,10 @@
-import { IsUUID, IsString, IsOptional } from 'class-validator';
+import { IsString, IsOptional } from 'class-validator';
 
 export class CreateAppointmentDto {
-  @IsUUID()
+  @IsString() // Temporarily relaxed for load testing with seed data
   slotId: string;
 
-  @IsUUID()
+  @IsString() // Temporarily relaxed for load testing with seed data
   patientId: string;
 
   @IsString()

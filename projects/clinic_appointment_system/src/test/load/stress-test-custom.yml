@@ -1,0 +1,18 @@
+
+config:
+  target: "http://localhost:3000"
+  phases:
+    - duration: 60
+      arrivalRate: 50
+  ensure:
+    maxErrorRate: 5
+    p95: 3000
+    p99: 5000
+
+scenarios:
+  - name: "Stress Test"
+    flow:
+      - get:
+          url: "/doctors?page=1&limit=10"
+      - get:
+          url: "/appointments?page=1&limit=20"

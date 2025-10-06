@@ -1,7 +1,7 @@
 ### System Design Problem: Clinic Appointment System (CAS)
 
 > **Status**: ✅ Core modules implemented and tested | ⚠️ Authentication pending  
-> **Last Updated**: October 5, 2025
+> **Last Updated**: October 6, 2025
 
 ## Quick Links
 - 📊 [High-Level Architecture](./diagrams/high_level/)
@@ -10,6 +10,29 @@
 - 🧪 [Testing Strategy](./docs/TESTING.md)
 - 🚀 [Production Readiness](./docs/PRODUCTION_READINESS.md)
 - 📮 [Postman Collections](./docs/postman/)
+- 🛠️ [CLI & Makefile Guide](./docs/CLI_MAKEFILE_GUIDE.md)
+- ⚡ [Quick Reference](./QUICK_REFERENCE.md)
+
+## ⚡ Quick Start
+
+```bash
+# First time setup
+make quickstart
+
+# Start development
+make dev
+
+# Check system health
+./cli.js health
+
+# Run quick validation (30s)
+make test-smoke
+
+# View results
+./cli.js report:smoke
+```
+
+📖 **See [Quick Reference](./QUICK_REFERENCE.md) for common commands**
 
 ---
 

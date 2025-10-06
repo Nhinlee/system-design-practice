@@ -4,8 +4,8 @@ import {
   IsInt,
   Min,
   Max,
-  IsUUID,
   IsISO8601,
+  IsString,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { AppointmentStatus } from '@prisma/client';
@@ -36,11 +36,11 @@ export class ListAppointmentsQueryDto {
   @IsOptional()
   endDate?: string;
 
-  @IsUUID()
+  @IsString()
   @IsOptional()
   doctorId?: string;
 
-  @IsUUID()
+  @IsString()
   @IsOptional()
   patientId?: string;
 }

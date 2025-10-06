@@ -1,0 +1,34 @@
+# Smoke Test Configuration
+# Quick 30-second test to validate system is working
+
+config:
+  target: "http://localhost:3000"
+  phases:
+    - duration: 30
+      arrivalRate: 10
+      name: "Smoke test"
+  
+  ensure:
+    maxErrorRate: 5 # Allow up to 5% errors
+    p95: 3000 # 95th percentile < 3s
+    p99: 5000 # 99th percentile < 5s
+
+scenarios:
+  # Simple read-only tests
+  - name: "List Doctors"
+    weight: 50
+    flow:
+      - get:
+          url: "/doctors?page=1&limit=10"
+          expect:
+            - statusCode: 200
+            - contentType: json
+  
+  - name: "List Appointments"
+    weight: 50
+    flow:
+      - get:
+          url: "/appointments?page=1&limit=10"
+          expect:
+            - statusCode: 200
+            - contentType: json

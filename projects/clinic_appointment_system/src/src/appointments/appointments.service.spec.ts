@@ -2,7 +2,12 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AppointmentsService } from './appointments.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AppointmentStatus, UserRole } from '@prisma/client';
-import { ConflictException, ForbiddenException, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 
 describe('AppointmentsService', () => {
   let service: AppointmentsService;
@@ -516,7 +521,11 @@ describe('AppointmentsService', () => {
       mockPrismaService.appointment.findUnique.mockResolvedValue(null);
 
       await expect(
-        service.getAppointmentById(appointmentId, currentUserId, UserRole.PATIENT),
+        service.getAppointmentById(
+          appointmentId,
+          currentUserId,
+          UserRole.PATIENT,
+        ),
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -628,7 +637,11 @@ describe('AppointmentsService', () => {
       mockPrismaService.appointment.findUnique.mockResolvedValue(null);
 
       await expect(
-        service.cancelAppointment(appointmentId, currentUserId, UserRole.PATIENT),
+        service.cancelAppointment(
+          appointmentId,
+          currentUserId,
+          UserRole.PATIENT,
+        ),
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -658,10 +671,18 @@ describe('AppointmentsService', () => {
       );
 
       await expect(
-        service.cancelAppointment(appointmentId, currentUserId, UserRole.PATIENT),
+        service.cancelAppointment(
+          appointmentId,
+          currentUserId,
+          UserRole.PATIENT,
+        ),
       ).rejects.toThrow(BadRequestException);
       await expect(
-        service.cancelAppointment(appointmentId, currentUserId, UserRole.PATIENT),
+        service.cancelAppointment(
+          appointmentId,
+          currentUserId,
+          UserRole.PATIENT,
+        ),
       ).rejects.toThrow('Appointment is already cancelled');
     });
 
@@ -676,10 +697,18 @@ describe('AppointmentsService', () => {
       );
 
       await expect(
-        service.cancelAppointment(appointmentId, currentUserId, UserRole.PATIENT),
+        service.cancelAppointment(
+          appointmentId,
+          currentUserId,
+          UserRole.PATIENT,
+        ),
       ).rejects.toThrow(BadRequestException);
       await expect(
-        service.cancelAppointment(appointmentId, currentUserId, UserRole.PATIENT),
+        service.cancelAppointment(
+          appointmentId,
+          currentUserId,
+          UserRole.PATIENT,
+        ),
       ).rejects.toThrow('Cannot cancel a completed appointment');
     });
 
@@ -697,10 +726,18 @@ describe('AppointmentsService', () => {
       );
 
       await expect(
-        service.cancelAppointment(appointmentId, currentUserId, UserRole.PATIENT),
+        service.cancelAppointment(
+          appointmentId,
+          currentUserId,
+          UserRole.PATIENT,
+        ),
       ).rejects.toThrow(BadRequestException);
       await expect(
-        service.cancelAppointment(appointmentId, currentUserId, UserRole.PATIENT),
+        service.cancelAppointment(
+          appointmentId,
+          currentUserId,
+          UserRole.PATIENT,
+        ),
       ).rejects.toThrow('Cannot cancel past appointments');
     });
   });

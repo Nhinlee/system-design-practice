@@ -27,7 +27,9 @@ config:
   variables:
     doctorId: "doctor-seed-001"
     patientId: "patient-seed-001"
-    slotIdBase: "slot-doctor-seed-001"
+  
+  # Processor for generating random slot IDs
+  processor: "./load-test-processor.js"
   
   # Performance thresholds
   ensure:
@@ -55,23 +57,26 @@ scenarios:
             - contentType: json
             - hasProperty: "data"
       
-      # Get doctor availability
+      # Get doctor availability (using proper ISO 8601 dates)
       - get:
-          url: "/doctors/{{ doctorId }}/availability?start_date={{ $randomString() }}"
+          url: "/doctors/{{ doctorId }}/availability?start_date=2025-10-07&end_date=2025-10-14"
           expect:
             - statusCode: 200
       
       # Think time (user reviews options)
       - think: 2
       
-      # Book appointment
+      # Generate random slot ID
+      - function: "generateSlotId"
+      
+      # Book appointment (using random available slot)
       - post:
           url: "/appointments"
           headers:
             Content-Type: "application/json"
             Idempotency-Key: "{{ $uuid }}"
           json:
-            slotId: "{{ slotIdBase }}-0-9-0" # First available slot
+            slotId: "{{ slotId }}"
             patientId: "{{ patientId }}"
             notes: "Annual checkup - Load test"
           capture:
@@ -110,9 +115,9 @@ scenarios:
           expect:
             - statusCode: 200
       
-      # Get availability
+      # Get availability (with proper date range)
       - get:
-          url: "/doctors/{{ doctorId }}/availability"
+          url: "/doctors/{{ doctorId }}/availability?start_date=2025-10-07&end_date=2025-10-14"
           expect:
             - statusCode: 200
 
@@ -120,6 +125,9 @@ scenarios:
   - name: "Concurrent Slot Booking"
     weight: 5
     flow:
+      # Generate random patient ID
+      - function: "generateRandomPatientId"
+      
       # Multiple users try to book the same slot simultaneously
       - post:
           url: "/appointments"
@@ -127,8 +135,8 @@ scenarios:
             Content-Type: "application/json"
             Idempotency-Key: "{{ $uuid }}"
           json:
-            slotId: "{{ slotIdBase }}-1-10-0" # Same slot for race condition
-            patientId: "patient-seed-{{ $randomNumber(1, 20) }}"
+            slotId: "slot-doctor-seed-001-2-10-0" # Same slot for race condition
+            patientId: "{{ randomPatientId }}"
             notes: "Concurrent booking test"
           expect:
             - statusCode: [201, 409] # One should succeed (201), others should fail (409)

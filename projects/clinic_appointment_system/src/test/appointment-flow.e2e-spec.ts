@@ -22,9 +22,9 @@ describe('Appointment Booking Flow (E2E)', () => {
 
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(new ValidationPipe({ transform: true }));
-    
+
     prisma = app.get<PrismaService>(PrismaService);
-    
+
     await app.init();
 
     // Setup test data
@@ -157,18 +157,14 @@ describe('Appointment Booking Flow (E2E)', () => {
         .expect(200);
 
       expect(cancelResponse.body.success).toBe(true);
-      expect(cancelResponse.body.data.status).toBe(
-        AppointmentStatus.CANCELLED,
-      );
+      expect(cancelResponse.body.data.status).toBe(AppointmentStatus.CANCELLED);
 
       // Step 5: Verify appointment is cancelled
       const verifyResponse = await supertest(app.getHttpServer())
         .get(`/appointments/${appointmentId}`)
         .expect(200);
 
-      expect(verifyResponse.body.data.status).toBe(
-        AppointmentStatus.CANCELLED,
-      );
+      expect(verifyResponse.body.data.status).toBe(AppointmentStatus.CANCELLED);
     });
 
     it('should handle idempotency correctly', async () => {
