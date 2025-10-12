@@ -135,30 +135,49 @@ test-cov:
 	@echo "📊 Running tests with coverage..."
 	pnpm run test:cov
 
-test-smoke:
-	@echo "💨 Running smoke test (30 seconds)..."
-	@echo "⏱️  This will test the system at 10 req/sec..."
+test-smoke: ## Run smoke test (~10 VUs, 30s)
+	@echo "💨 Running smoke test..."
 	@mkdir -p test/load/results
-	npx artillery run --output test/load/results/smoke-test.json test/load/smoke-test.yml
+	k6 run --out json=test/load/results/k6-smoke-test.json test/load/k6-smoke-test.js
 
-test-load:
-	@echo "🔥 Running full load test (8 minutes)..."
-	@echo "⏱️  Phases: Warm-up → Ramp-up → Peak → Spike → Cool-down"
-	@echo "📈 This will test up to 100 req/sec..."
+test-load: ## Run full load test (~100 VUs, 8 min)
+	@echo "🔥 Running comprehensive load test..."
 	@mkdir -p test/load/results
-	npx artillery run --output test/load/results/full-load-test.json test/load/appointment-booking.yml
+	k6 run --out json=test/load/results/k6-load-test.json test/load/k6-load-test.js
 
 test-all: test-unit test-e2e test-smoke
 	@echo "✅ All tests completed!"
 
 # Reports
-report-smoke:
-	@echo "📊 Generating smoke test report..."
-	@node -e "const fs = require('fs'); const data = JSON.parse(fs.readFileSync('test/load/results/smoke-test.json')); console.log('Smoke Test Results:'); console.log('Total Requests:', data.aggregate.counters['http.requests']); console.log('Success Rate:', (100 - (data.aggregate.counters['vusers.failed'] || 0) / data.aggregate.counters['vusers.completed'] * 100).toFixed(2) + '%'); console.log('P95 Latency:', data.aggregate.summaries['http.response_time'].p95 + 'ms'); console.log('P99 Latency:', data.aggregate.summaries['http.response_time'].p99 + 'ms');"
+report-smoke: ## Show smoke test report
+	@if [ -f test/load/results/k6-smoke-test.json ]; then \
+		node scripts/parse-k6-report.js test/load/results/k6-smoke-test.json "Smoke Test"; \
+	else \
+		echo "❌ No smoke test results found. Run: make test-smoke"; \
+	fi
 
-report-load:
-	@echo "📊 Generating load test report..."
-	@node -e "const fs = require('fs'); const data = JSON.parse(fs.readFileSync('test/load/results/full-load-test.json')); console.log('Load Test Results:'); console.log('Total Requests:', data.aggregate.counters['http.requests']); console.log('Success Rate:', (100 - (data.aggregate.counters['vusers.failed'] || 0) / data.aggregate.counters['vusers.completed'] * 100).toFixed(2) + '%'); console.log('P95 Latency:', data.aggregate.summaries['http.response_time'].p95 + 'ms'); console.log('P99 Latency:', data.aggregate.summaries['http.response_time'].p99 + 'ms'); console.log('Error Rate:', ((data.aggregate.counters['http.codes.400'] || 0) + (data.aggregate.counters['http.codes.500'] || 0)) / data.aggregate.counters['http.requests'] * 100 + '%');"
+report-load: ## Show load test report  
+	@if [ -f test/load/results/k6-load-test.json ]; then \
+		node scripts/parse-k6-report.js test/load/results/k6-load-test.json "Comprehensive Load Test"; \
+	else \
+		echo "❌ No load test results found. Run: make test-load"; \
+	fi
+
+report-html-smoke: ## Open smoke test HTML report in browser
+	@if [ -f test/load/results/k6-smoke-test.html ]; then \
+		echo "🌐 Opening HTML report..."; \
+		open test/load/results/k6-smoke-test.html; \
+	else \
+		echo "❌ No HTML report found. Run: make test-smoke"; \
+	fi
+
+report-html-load: ## Open load test HTML report in browser
+	@if [ -f test/load/results/k6-load-test.html ]; then \
+		echo "🌐 Opening HTML report..."; \
+		open test/load/results/k6-load-test.html; \
+	else \
+		echo "❌ No HTML report found. Run: make test-load"; \
+	fi
 
 report-coverage:
 	@echo "📊 Opening coverage report..."

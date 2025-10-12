@@ -102,126 +102,127 @@ async function checkHealth() {
 
 function runSmokeTest() {
   log('\n💨 Running Smoke Test (30 seconds)\n', 'cyan');
-  log('This will test the system at 10 req/sec...', 'blue');
+  log('This will test the system with ~10 virtual users...', 'blue');
   
-  const outputFile = 'test/load/results/smoke-test.json';
-  exec(`npx artillery run --output ${outputFile} test/load/smoke-test.yml`);
+  exec('k6 run test/load/k6-smoke-test.js');
   
   log('\n✅ Smoke test completed!', 'green');
-  showReport(outputFile, 'Smoke Test');
 }
 
 function runLoadTest() {
   log('\n🔥 Running Full Load Test (8 minutes)\n', 'cyan');
   log('Phases: Warm-up → Ramp-up → Peak → Spike → Cool-down', 'blue');
-  log('Peak load: 100 req/sec\n', 'yellow');
+  log('Peak load: 100 virtual users\n', 'yellow');
   
-  const outputFile = 'test/load/results/full-load-test.json';
-  exec(`npx artillery run --output ${outputFile} test/load/appointment-booking.yml`);
+  exec('k6 run test/load/k6-load-test.js');
   
   log('\n✅ Load test completed!', 'green');
-  showReport(outputFile, 'Full Load Test');
 }
 
-function runStressTest(duration = 60, rate = 50) {
+function runStressTest(duration = 60, vus = 50) {
   log(`\n⚡ Running Custom Stress Test\n`, 'cyan');
-  log(`Duration: ${duration}s, Rate: ${rate} req/sec\n`, 'blue');
+  log(`Duration: ${duration}s, Virtual Users: ${vus}\n`, 'blue');
   
-  // Create temporary stress test config
-  const config = `
-config:
-  target: "http://localhost:3000"
-  phases:
-    - duration: ${duration}
-      arrivalRate: ${rate}
-  ensure:
-    maxErrorRate: 5
-    p95: 3000
-    p99: 5000
+  // Create temporary k6 stress test script
+  const script = `
+import http from 'k6/http';
+import { check, sleep } from 'k6';
 
-scenarios:
-  - name: "Stress Test"
-    flow:
-      - get:
-          url: "/doctors?page=1&limit=10"
-      - get:
-          url: "/appointments?page=1&limit=20"
+export const options = {
+  vus: ${vus},
+  duration: '${duration}s',
+  thresholds: {
+    http_req_failed: ['rate<0.05'],
+    http_req_duration: ['p(95)<3000', 'p(99)<5000'],
+  },
+};
+
+const BASE_URL = 'http://localhost:3000';
+
+export default function () {
+  http.get(\`\${BASE_URL}/doctors?page=1&limit=10\`);
+  http.get(\`\${BASE_URL}/appointments?page=1&limit=20\`);
+  sleep(0.5);
+}
 `;
   
-  const configFile = 'test/load/stress-test-custom.yml';
-  fs.writeFileSync(configFile, config);
+  const scriptFile = 'test/load/k6-stress-custom.js';
+  fs.writeFileSync(scriptFile, script);
   
-  const outputFile = 'test/load/results/stress-test.json';
-  exec(`npx artillery run --output ${outputFile} ${configFile}`);
+  exec(`k6 run ${scriptFile}`);
   
   log('\n✅ Stress test completed!', 'green');
-  showReport(outputFile, 'Stress Test');
 }
 
 function showReport(filePath, title) {
   try {
     const data = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-    const agg = data.aggregate;
     
-    log(`\n📊 ${title} Results\n`, 'cyan');
-    log('─'.repeat(50), 'blue');
-    
-    const totalRequests = agg.counters['http.requests'] || 0;
-    const failed = agg.counters['vusers.failed'] || 0;
-    const completed = agg.counters['vusers.completed'] || 1;
-    const successRate = (100 - (failed / completed * 100)).toFixed(2);
-    
-    const codes4xx = Object.keys(agg.counters)
-      .filter(k => k.startsWith('http.codes.4'))
-      .reduce((sum, k) => sum + agg.counters[k], 0);
-    
-    const codes5xx = Object.keys(agg.counters)
-      .filter(k => k.startsWith('http.codes.5'))
-      .reduce((sum, k) => sum + agg.counters[k], 0);
-    
-    const errorRate = ((codes4xx + codes5xx) / totalRequests * 100).toFixed(2);
-    
-    log(`Total Requests:     ${totalRequests.toLocaleString()}`, 'bright');
-    log(`Success Rate:       ${successRate}%`, successRate >= 99 ? 'green' : 'yellow');
-    log(`Error Rate:         ${errorRate}%`, errorRate <= 1 ? 'green' : 'red');
-    log('', 'reset');
-    
-    const rt = agg.summaries['http.response_time'] || {};
-    log(`Response Time (ms):`, 'bright');
-    log(`  Min:              ${rt.min || 'N/A'}`, 'reset');
-    log(`  Mean:             ${(rt.mean || 0).toFixed(1)}`, 'reset');
-    log(`  Median:           ${rt.median || 'N/A'}`, 'reset');
-    log(`  P95:              ${rt.p95 || 'N/A'}`, rt.p95 <= 2000 ? 'green' : 'yellow');
-    log(`  P99:              ${rt.p99 || 'N/A'}`, rt.p99 <= 5000 ? 'green' : 'yellow');
-    log(`  Max:              ${rt.max || 'N/A'}`, 'reset');
-    log('', 'reset');
-    
-    log(`HTTP Status Codes:`, 'bright');
-    Object.keys(agg.counters)
-      .filter(k => k.startsWith('http.codes.'))
-      .sort()
-      .forEach(key => {
-        const code = key.replace('http.codes.', '');
-        const count = agg.counters[key];
-        const color = code.startsWith('2') ? 'green' : code.startsWith('4') ? 'yellow' : 'red';
-        log(`  ${code}:              ${count.toLocaleString()}`, color);
-      });
-    
-    log('\n' + '─'.repeat(50), 'blue');
-    
-    // Performance verdict
-    if (successRate >= 99 && errorRate <= 1 && rt.p95 <= 2000) {
-      log('\n✅ PASS - All metrics within acceptable range', 'green');
-    } else if (successRate >= 95 && errorRate <= 5) {
-      log('\n⚠️  WARNING - Some metrics need attention', 'yellow');
+    // Check if it's k6 format (has metrics property)
+    if (data.metrics) {
+      showK6Report(data, title);
     } else {
-      log('\n❌ FAIL - Performance issues detected', 'red');
+      log(`\n⚠️  k6 JSON output format has changed. View raw file: ${filePath}`, 'yellow');
     }
-    
-    log('');
   } catch (error) {
     log(`❌ Error reading report: ${error.message}`, 'red');
+    log(`💡 k6 results are displayed in the console output`, 'yellow');
   }
+}
+
+function showK6Report(data, title) {
+  const m = data.metrics;
+  
+  log(`\n📊 ${title} Results\n`, 'cyan');
+  log('─'.repeat(50), 'blue');
+  
+  const totalRequests = m.http_reqs ? m.http_reqs.values.count : 0;
+  const failedRate = m.http_req_failed ? m.http_req_failed.values.rate : 0;
+  const successRate = ((1 - failedRate) * 100).toFixed(2);
+  
+  log(`Total Requests:     ${totalRequests.toLocaleString()}`, 'bright');
+  log(`Success Rate:       ${successRate}%`, successRate >= 99 ? 'green' : 'yellow');
+  log(`Failed Requests:    ${(failedRate * 100).toFixed(2)}%`, failedRate <= 0.01 ? 'green' : 'red');
+  log('', 'reset');
+  
+  if (m.http_req_duration) {
+    const rt = m.http_req_duration.values;
+    log(`Response Time (ms):`, 'bright');
+    log(`  Min:              ${rt.min.toFixed(1)}`, 'reset');
+    log(`  Mean:             ${rt.avg.toFixed(1)}`, 'reset');
+    log(`  Median:           ${rt.med.toFixed(1)}`, 'reset');
+    log(`  P90:              ${rt['p(90)'].toFixed(1)}`, rt['p(90)'] <= 1500 ? 'green' : 'yellow');
+    log(`  P95:              ${rt['p(95)'].toFixed(1)}`, rt['p(95)'] <= 2000 ? 'green' : 'yellow');
+    log(`  P99:              ${rt['p(99)'].toFixed(1)}`, rt['p(99)'] <= 5000 ? 'green' : 'yellow');
+    log(`  Max:              ${rt.max.toFixed(1)}`, 'reset');
+    log('', 'reset');
+  }
+  
+  // Custom metrics if available
+  if (m.booking_success) {
+    log(`Booking Metrics:`, 'bright');
+    log(`  Success Rate:     ${(m.booking_success.values.rate * 100).toFixed(2)}%`, 'green');
+    if (m.booking_conflicts) {
+      log(`  Conflict Rate:    ${(m.booking_conflicts.values.rate * 100).toFixed(2)}%`, 'yellow');
+    }
+    log('', 'reset');
+  }
+  
+  log('─'.repeat(50), 'blue');
+  
+  // Performance verdict
+  const p95 = m.http_req_duration ? m.http_req_duration.values['p(95)'] : 9999;
+  const errorRate = failedRate * 100;
+  
+  if (successRate >= 99 && errorRate <= 1 && p95 <= 2000) {
+    log('\n✅ PASS - All metrics within acceptable range', 'green');
+  } else if (successRate >= 95 && errorRate <= 5) {
+    log('\n⚠️  WARNING - Some metrics need attention', 'yellow');
+  } else {
+    log('\n❌ FAIL - Performance issues detected', 'red');
+  }
+  
+  log('');
 }
 
 function seedDatabase() {
@@ -246,9 +247,9 @@ function showHelp() {
   
   log('Commands:', 'bright');
   log('  health                        - Check system health', 'reset');
-  log('  test:smoke                    - Run smoke test (30s)', 'reset');
-  log('  test:load                     - Run full load test (8min)', 'reset');
-  log('  test:stress [duration] [rate] - Run custom stress test', 'reset');
+  log('  test:smoke                    - Run smoke test (30s, k6)', 'reset');
+  log('  test:load                     - Run full load test (8min, k6)', 'reset');
+  log('  test:stress [duration] [vus]  - Run custom stress test', 'reset');
   log('  report:smoke                  - Show smoke test report', 'reset');
   log('  report:load                   - Show load test report', 'reset');
   log('  db:seed                       - Seed database with test data', 'reset');
@@ -256,8 +257,9 @@ function showHelp() {
   log('\nExamples:', 'bright');
   log('  ./cli.js health', 'yellow');
   log('  ./cli.js test:smoke', 'yellow');
-  log('  ./cli.js test:stress 120 75   # 2 min at 75 req/sec', 'yellow');
+  log('  ./cli.js test:stress 120 75   # 2 min with 75 VUs', 'yellow');
   log('  ./cli.js report:load', 'yellow');
+  log('\nNote: Load tests now use k6 instead of Artillery', 'cyan');
   log('');
 }
 
