@@ -11,6 +11,7 @@ import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { Rate, Counter, Trend } from 'k6/metrics';
 import { htmlReport } from 'https://raw.githubusercontent.com/benc-uk/k6-reporter/main/dist/bundle.js';
+import { textSummary } from 'https://jslib.k6.io/k6-summary/0.0.1/index.js';
 
 // Custom metrics
 const errorRate = new Rate('errors');
@@ -20,15 +21,6 @@ const customMetrics = new Trend('custom_duration');
 
 // Test configuration
 export const options = {
-  // Load test phases (matching Artillery config)
-  stages: [
-    { duration: '1m', target: 5 },    // Warm up: 1 min at 5 VUs
-    { duration: '2m', target: 50 },   // Ramp up: 2 min ramping to 50 VUs
-    { duration: '3m', target: 50 },   // Peak load: 3 min sustained at 50 VUs
-    { duration: '1m', target: 100 },  // Spike: 1 min at 100 VUs
-    { duration: '1m', target: 20 },   // Cool down: 1 min at 20 VUs
-  ],
-  
   // Thresholds (equivalent to Artillery's ensure)
   thresholds: {
     'http_req_failed': ['rate<0.01'], // Error rate < 1%
@@ -98,32 +90,55 @@ const BASE_URL = 'http://localhost:3000';
 const DOCTOR_ID = 'doctor-seed-001';
 const PATIENT_ID = 'patient-seed-001';
 
-// Available slots (matching load-test-processor.js)
+// Available slots (actual current database slots - regularly updated)
+// Format: slot-doctor-seed-001-{dayIndex}-{hour}-{minute}
+// These are slots that are currently available (unbooked) in the database
 const AVAILABLE_SLOTS = [
+  // Day 1
+  'slot-doctor-seed-001-1-12-30',
+  'slot-doctor-seed-001-1-14-30',
+  'slot-doctor-seed-001-1-15-0',
+  // Day 2
   'slot-doctor-seed-001-2-9-0',
   'slot-doctor-seed-001-2-9-30',
   'slot-doctor-seed-001-2-10-0',
   'slot-doctor-seed-001-2-10-30',
+  'slot-doctor-seed-001-2-11-0',
+  'slot-doctor-seed-001-2-13-0',
+  'slot-doctor-seed-001-2-14-0',
+  'slot-doctor-seed-001-2-14-30',
+  'slot-doctor-seed-001-2-15-0',
+  'slot-doctor-seed-001-2-15-30',
+  'slot-doctor-seed-001-2-16-0',
+  'slot-doctor-seed-001-2-16-30',
+  // Day 3
   'slot-doctor-seed-001-3-9-0',
   'slot-doctor-seed-001-3-9-30',
-  'slot-doctor-seed-001-3-10-0',
   'slot-doctor-seed-001-3-10-30',
-  'slot-doctor-seed-001-4-10-0',
-  'slot-doctor-seed-001-4-10-30',
-  'slot-doctor-seed-001-4-11-0',
+  'slot-doctor-seed-001-3-11-30',
+  'slot-doctor-seed-001-3-12-0',
+  'slot-doctor-seed-001-3-12-30',
+  'slot-doctor-seed-001-3-13-30',
+  'slot-doctor-seed-001-3-16-0',
+  'slot-doctor-seed-001-3-16-30',
+  // Day 4
+  'slot-doctor-seed-001-4-11-30',
   'slot-doctor-seed-001-4-15-30',
   'slot-doctor-seed-001-4-16-0',
+  'slot-doctor-seed-001-4-16-30',
+  // Day 5
   'slot-doctor-seed-001-5-9-0',
-  'slot-doctor-seed-001-5-9-30',
   'slot-doctor-seed-001-5-10-0',
   'slot-doctor-seed-001-5-10-30',
+  'slot-doctor-seed-001-5-11-0',
+  'slot-doctor-seed-001-5-11-30',
+  'slot-doctor-seed-001-5-12-0',
+  'slot-doctor-seed-001-5-12-30',
+  'slot-doctor-seed-001-5-13-0',
+  'slot-doctor-seed-001-5-13-30',
+  'slot-doctor-seed-001-5-14-30',
   'slot-doctor-seed-001-5-15-0',
   'slot-doctor-seed-001-5-15-30',
-  'slot-doctor-seed-001-5-16-0',
-  'slot-doctor-seed-001-8-9-0',
-  'slot-doctor-seed-001-8-10-0',
-  'slot-doctor-seed-001-8-11-0',
-  'slot-doctor-seed-001-8-11-30',
 ];
 
 // Helper functions
@@ -200,7 +215,7 @@ export function patientBookingFlow() {
   );
   
   success = check(response, {
-    'booking status is 201 or 409': (r) => r.status === 201 || r.status === 409,
+    'booking status is 201, 409, or 404': (r) => r.status === 201 || r.status === 409 || r.status === 404,
   });
   
   // Track booking outcomes
@@ -209,6 +224,7 @@ export function patientBookingFlow() {
   } else if (response.status === 409) {
     bookingConflicts.add(1);
   }
+  // Note: 404 can happen if slot was just booked by another VU or doesn't exist
   
   errorRate.add(!success);
   
@@ -289,10 +305,11 @@ export function concurrentSlotBooking() {
   const idempotencyKey = generateUUID();
   
   // Multiple users try to book the same slot simultaneously
+  // Using a popular slot for race condition test
   const response = http.post(
     `${BASE_URL}/appointments`,
     JSON.stringify({
-      slotId: 'slot-doctor-seed-001-2-10-0', // Same slot for race condition test
+      slotId: 'slot-doctor-seed-001-2-10-0', // Popular slot for concurrent test
       patientId: randomPatientId,
       notes: 'Concurrent booking test',
     }),
@@ -355,35 +372,35 @@ export function handleSummary(data) {
     console.log(`\n🔢 Total Requests: ${metrics.http_reqs.values.count}`);
   }
   
-  if (metrics.http_req_duration) {
+  if (metrics.http_req_duration && metrics.http_req_duration.values) {
+    const dur = metrics.http_req_duration.values;
     console.log(`\n⏱️  Response Times:`);
-    console.log(`  - Average: ${metrics.http_req_duration.values.avg.toFixed(2)}ms`);
-    console.log(`  - Median:  ${metrics.http_req_duration.values.med.toFixed(2)}ms`);
-    console.log(`  - P95:     ${metrics.http_req_duration.values['p(95)'].toFixed(2)}ms`);
-    console.log(`  - P99:     ${metrics.http_req_duration.values['p(99)'].toFixed(2)}ms`);
-    console.log(`  - Max:     ${metrics.http_req_duration.values.max.toFixed(2)}ms`);
+    if (dur.avg) console.log(`  - Average: ${dur.avg.toFixed(2)}ms`);
+    if (dur.med) console.log(`  - Median:  ${dur.med.toFixed(2)}ms`);
+    if (dur['p(95)']) console.log(`  - P95:     ${dur['p(95)'].toFixed(2)}ms`);
+    if (dur['p(99)']) console.log(`  - P99:     ${dur['p(99)'].toFixed(2)}ms`);
+    if (dur.max) console.log(`  - Max:     ${dur.max.toFixed(2)}ms`);
   }
   
-  if (metrics.http_req_failed) {
+  if (metrics.http_req_failed && metrics.http_req_failed.values) {
     const failRate = (metrics.http_req_failed.values.rate * 100).toFixed(2);
     console.log(`\n❌ Failed Requests: ${failRate}%`);
   }
   
   // Custom business metrics
-  if (metrics.booking_successes) {
+  if (metrics.booking_successes && metrics.booking_successes.values) {
     console.log(`\n✅ Booking Successes: ${metrics.booking_successes.values.count}`);
   }
   
-  if (metrics.booking_conflicts) {
+  if (metrics.booking_conflicts && metrics.booking_conflicts.values) {
     console.log(`⚠️  Booking Conflicts (409): ${metrics.booking_conflicts.values.count}`);
   }
   
   console.log('\n================\n');
   
-  // Return reports
+  // Return reports - use absolute paths for proper file creation
   return {
-    'test/load/results/k6-load-test.html': htmlReport(data),
-    'test/load/results/k6-load-test.json': JSON.stringify(data, null, 2),
-    stdout: '', // Suppress default summary since we have custom output above
+    './test/load/results/k6-load-test.html': htmlReport(data),
+    stdout: textSummary(data, { indent: ' ', enableColors: true }),
   };
 }

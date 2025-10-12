@@ -145,8 +145,15 @@ test-load:
 	@echo "🔥 Running full load test (8 minutes)..."
 	@echo "⏱️  Phases: Warm-up → Ramp-up → Peak → Spike → Cool-down"
 	@echo "📈 This will test up to 100 VUs..."
+	@echo ""
+	@echo "⚠️  NOTE: For best results, reset database first:"
+	@echo "   make db-reset && make test-load"
+	@echo ""
 	@mkdir -p test/load/results
 	k6 run --out json=test/load/results/k6-load-test.json test/load/k6-load-test.js
+
+test-load-fresh: db-reset test-load
+	@echo "✅ Load test completed with fresh database!"
 
 test-stress:
 	@echo "💪 Running stress test (60 seconds)..."
