@@ -102,62 +102,72 @@ async function checkHealth() {
 
 function runSmokeTest() {
   log('\n💨 Running Smoke Test (30 seconds)\n', 'cyan');
-  log('This will test the system at 10 req/sec...', 'blue');
+  log('This will test the system with 10 VUs...', 'blue');
   
-  const outputFile = 'test/load/results/smoke-test.json';
-  exec(`npx artillery run --output ${outputFile} test/load/smoke-test.yml`);
+  // Ensure results directory exists
+  if (!fs.existsSync('test/load/results')) {
+    fs.mkdirSync('test/load/results', { recursive: true });
+  }
+  
+  exec('k6 run --out json=test/load/results/k6-smoke-test.json test/load/k6-smoke-test.js');
   
   log('\n✅ Smoke test completed!', 'green');
-  showReport(outputFile, 'Smoke Test');
+  log('📊 HTML report: test/load/results/k6-smoke-test.html', 'blue');
+  log('📄 JSON data: test/load/results/k6-smoke-test.json', 'blue');
 }
 
 function runLoadTest() {
   log('\n🔥 Running Full Load Test (8 minutes)\n', 'cyan');
   log('Phases: Warm-up → Ramp-up → Peak → Spike → Cool-down', 'blue');
-  log('Peak load: 100 req/sec\n', 'yellow');
+  log('Peak load: 100 VUs\n', 'yellow');
   
-  const outputFile = 'test/load/results/full-load-test.json';
-  exec(`npx artillery run --output ${outputFile} test/load/appointment-booking.yml`);
+  // Ensure results directory exists
+  if (!fs.existsSync('test/load/results')) {
+    fs.mkdirSync('test/load/results', { recursive: true });
+  }
+  
+  exec('k6 run --out json=test/load/results/k6-load-test.json test/load/k6-load-test.js');
   
   log('\n✅ Load test completed!', 'green');
-  showReport(outputFile, 'Full Load Test');
+  log('📊 HTML report: test/load/results/k6-load-test.html', 'blue');
+  log('📄 JSON data: test/load/results/k6-load-test.json', 'blue');
 }
 
-function runStressTest(duration = 60, rate = 50) {
-  log(`\n⚡ Running Custom Stress Test\n`, 'cyan');
-  log(`Duration: ${duration}s, Rate: ${rate} req/sec\n`, 'blue');
+function runStressTest(duration = 60, vus = 50) {
+  log(`\n⚡ Running Stress Test\n`, 'cyan');
+  log(`Duration: ${duration}s, VUs: ${vus}\n`, 'blue');
   
-  // Create temporary stress test config
-  const config = `
-config:
-  target: "http://localhost:3000"
-  phases:
-    - duration: ${duration}
-      arrivalRate: ${rate}
-  ensure:
-    maxErrorRate: 5
-    p95: 3000
-    p99: 5000
-
-scenarios:
-  - name: "Stress Test"
-    flow:
-      - get:
-          url: "/doctors?page=1&limit=10"
-      - get:
-          url: "/appointments?page=1&limit=20"
-`;
+  // Ensure results directory exists
+  if (!fs.existsSync('test/load/results')) {
+    fs.mkdirSync('test/load/results', { recursive: true });
+  }
   
-  const configFile = 'test/load/stress-test-custom.yml';
-  fs.writeFileSync(configFile, config);
-  
-  const outputFile = 'test/load/results/stress-test.json';
-  exec(`npx artillery run --output ${outputFile} ${configFile}`);
+  // Run k6 with custom options
+  exec(`k6 run --vus ${vus} --duration ${duration}s --out json=test/load/results/k6-stress-test.json test/load/k6-stress-test.js`);
   
   log('\n✅ Stress test completed!', 'green');
-  showReport(outputFile, 'Stress Test');
+  log('📊 HTML report: test/load/results/k6-stress-test.html', 'blue');
+  log('📄 JSON data: test/load/results/k6-stress-test.json', 'blue');
 }
 
+function openHtmlReport(filePath, title) {
+  log(`\n📊 Opening ${title} HTML Report\n`, 'cyan');
+  
+  if (!fs.existsSync(filePath)) {
+    log(`❌ Report not found: ${filePath}`, 'red');
+    log('Run the test first to generate the report.', 'yellow');
+    return;
+  }
+  
+  log(`📂 Report location: ${filePath}`, 'blue');
+  
+  // Open in default browser (macOS)
+  exec(`open ${filePath}`, { silent: true });
+  
+  log('✅ Opening report in browser...', 'green');
+}
+
+// Legacy function - kept for backward compatibility with Artillery JSON reports
 function showReport(filePath, title) {
   try {
     const data = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
@@ -283,11 +293,15 @@ switch (command) {
     break;
   
   case 'report:smoke':
-    showReport('test/load/results/smoke-test.json', 'Smoke Test');
+    openHtmlReport('test/load/results/k6-smoke-test.html', 'Smoke Test');
     break;
   
   case 'report:load':
-    showReport('test/load/results/full-load-test.json', 'Full Load Test');
+    openHtmlReport('test/load/results/k6-load-test.html', 'Load Test');
+    break;
+  
+  case 'report:stress':
+    openHtmlReport('test/load/results/k6-stress-test.html', 'Stress Test');
     break;
   
   case 'db:seed':

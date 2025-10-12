@@ -13,7 +13,7 @@
 - 🛠️ [CLI & Makefile Guide](./docs/CLI_MAKEFILE_GUIDE.md)
 - ⚡ [Quick Reference](./QUICK_REFERENCE.md)
 
-## ⚡ Quick Start
+# Quick Start
 
 ```bash
 # First time setup
@@ -28,11 +28,12 @@ make dev
 # Run quick validation (30s)
 make test-smoke
 
-# View results
-./cli.js report:smoke
+# View HTML report
+make report-smoke
 ```
 
-📖 **See [Quick Reference](./QUICK_REFERENCE.md) for common commands**
+📖 **See [Quick Reference](./QUICK_REFERENCE.md) for common commands**  
+📖 **See [k6 Load Testing Guide](./K6_QUICK_REFERENCE.md) for load testing**
 
 ---
 
@@ -149,8 +150,17 @@ npm run start:dev
 # Individual test types
 npm run test           # Unit tests
 npm run test:e2e       # E2E tests
-npm run test:load      # Load tests
+npm run test:smoke     # Quick smoke test (30s)
+npm run test:load      # Full load test (8min)
+npm run test:stress    # Stress test (60s)
+
+# View load test reports
+make report-smoke      # Open smoke test HTML report
+make report-load       # Open load test HTML report
 ```
+
+📖 **[k6 Migration Guide](./K6_MIGRATION_GUIDE.md)** - Details about the Artillery → k6 migration  
+📖 **[k6 Quick Reference](./K6_QUICK_REFERENCE.md)** - k6 usage examples and patterns
 
 ## 📊 System Status
 
@@ -173,7 +183,9 @@ npm run test:load      # Load tests
 ### Testing
 - **Unit Tests**: 28+ test cases
 - **E2E Tests**: 6 complete flows
-- **Load Tests**: Configured for 100 req/sec peak
+- **Load Tests**: k6-based (smoke, load, stress tests)
+- **Peak Load**: Up to 100 concurrent virtual users
+- **HTML Reports**: Interactive charts and metrics
 - **Coverage**: Target 85%+ for business logic
 
 ## 📖 Documentation
