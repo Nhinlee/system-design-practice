@@ -1,0 +1,66 @@
+# Dependencies
+node_modules
+npm-debug.log
+pnpm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# Build outputs
+dist
+build
+.next
+out
+
+# Environment files
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Testing
+coverage
+.nyc_output
+test
+*.test.ts
+*.spec.ts
+jest.config.js
+test-report
+
+# Version control
+.git
+.gitignore
+.gitattributes
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Documentation
+README.md
+docs
+*.md
+
+# CI/CD
+.github
+.gitlab-ci.yml
+.travis.yml
+
+# Misc
+.editorconfig
+.prettierrc
+.eslintrc
+eslint.config.mjs
+.prettierignore
+Makefile
+docker-compose.yml
+*.log
+tmp
+temp
