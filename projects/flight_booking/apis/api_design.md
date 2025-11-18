@@ -8,6 +8,7 @@ This document outlines the API design for a flight booking system, focusing on k
 - `origin` (string, required): IATA code of the origin airport (e.g., "SGN").
 - `destination` (string, required): IATA code of the destination
 - `departure_date` (string, required): Date of departure in YYYY-MM-DD format.
+- `passenger_count` (integer, optional, default=1): Number of passengers. (Adults only for MVP)
 ### Response
 - `itineraries` (array): List of available flight itineraries.
     - Each itinerary includes:
