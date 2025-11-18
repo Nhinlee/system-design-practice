@@ -13,7 +13,7 @@
 	- Direct flights limited to a single leg.
 	- Transit itineraries may include multiple legs, capped at 3 (e.g., SGN → DAD → HAN → NRT).
 - **Round trips:** Clients issue two one-way searches; backend optimizes strictly for the single one-way problem.
-- **Search filters (MVP):** Origin airport, destination airport, departure date.
+- **Search filters (MVP):** `Origin airport, destination airport, departure date`.
 - **Out of scope filters:** Flexible dates, fare ranges, alliances.
 
 ### 2.2 Booking & Pricing Logic
@@ -21,7 +21,7 @@
 - **Hold mechanism:** Selecting an itinerary locks seats and fare for 10 minutes while traveler supplies details.
 - **Expiration:** Holds auto-expire after 10 minutes if not confirmed, releasing inventory back to the pool.
 - **Consistency:** Strong consistency required to avoid overbooking across every leg.
-- **Passenger data collected:** First name, last name, email, phone, date of birth (no passport/visa data).
+- **Passenger data collected:** `First name, last name, email, phone, date of birth (no passport/visa data)`.
 
 ## 3. Non-Functional Requirements
 
